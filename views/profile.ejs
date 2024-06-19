@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <style>
+        .minimalist-list {
+            list-style-type: disc;
+            padding-left: 20px;
+        }
+        .minimalist-list li {
+            padding: 5px 0;
+            position: relative;
+        }
+        .minimalist-list li::before {
+            content: "\2022";
+            color: #007bff;
+            font-weight: bold;
+            display: inline-block;
+            width: 1em;
+            margin-left: -1em;
+        }
+        .minimalist-list a {
+            text-decoration: none;
+            color: #007bff;
+        }
+        .minimalist-list a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+<%- include('navbar') %>
+<div class="container mt-5">
+    <h1 class="mb-4">Вы аутентифицированный как <span class="text-primary"><%= user.username %></span>.</h1>
+
+    <div class="card">
+        <div class="card-body">
+            <h2 class="mb-4">История ваших запросов</h2>
+            <br>
+            <!-- Закомментированная кнопка Logout -->
+            <!-- <a href="/logout" class="btn btn-danger">Logout</a> -->
+
+            <!-- Добавленная кнопка для просмотра истории поиска -->
+            <button class="btn btn-primary mb-3" onclick="searchHistoryreq()">Посмотреть историю вашего поиска</button>
+
+            <!-- Добавленная красная кнопка для удаления истории запросов -->
+            <button class="btn btn-danger mb-3" onclick="clearHistoryUser()">Удалить историю запросов</button>
+
+            <!-- Контейнер для вывода истории поиска -->
+            <div id="searchHistory" class="mt-4"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // async function searchHistoryreq() {
+    //     try {
+    //         // Отправка асинхронного запроса на сервер
+    //         let response = await fetch('/api/getAllSearchResult');
+    //
+    //         // Проверка, был ли запрос успешным
+    //         if (!response.ok) {
+    //             throw new Error(`HTTP error! status: ${response.status}`);
+    //         }
+    //
+    //         // Преобразование ответа в JSON
+    //         let data = await response.json();
+    //
+    //         // Логирование данных для отладки
+    //         console.log('История поиска:', data);
+    //
+    //         // Получение контейнера для вывода истории поиска
+    //         let searchHistoryContainer = document.getElementById('searchHistory');
+    //
+    //         // Очистка контейнера перед добавлением новых данных
+    //         searchHistoryContainer.innerHTML = '';
+    //
+    //         // Формирование HTML контента для каждого элемента данных
+    //         data.forEach(item => {
+    //             const htmlContent = `
+    //             <div class="card mb-3">
+    //                 <div class="card-header">
+    //                     <strong>${item.author_name}</strong>
+    //                 </div>
+    //                 <div class="card-body">
+    //                     <p><strong>Уникальный ключ:</strong> ${item.uniqkey}</p>
+    //                     <p><strong>Дата запроса:</strong> ${item.date_stamp}</p>
+    //                     <p><strong>Сообщение:</strong> ${item.message_to_user}</p>
+    //                     <p><strong>Источник:</strong> <a href="${item.source_url}" target="_blank">${item.source_url}</a></p>
+    //                     <p><strong>Страница автора:</strong> <a href="${item.author_page_url}" target="_blank">${item.author_page_url}</a></p>
+    //                     <p><strong>Количество статей:</strong> ${item.articles_count}</p>
+    //                     <ul class="list-group">
+    //                         ${item.articles.map(article => `
+    //                             <li class="list-group-item">
+    //                                 <strong>Название статьи:</strong> <a href="${article.linkToArticle}" target="_blank">${article.titleOfArticle}</a><br>
+    //                                 ${article.authors !== undefined ? `<strong>Авторы:</strong> ${article.authors}` : ''}
+    //                             </li>
+    //                         `).join('')}
+    //                     </ul>
+    //                 </div>
+    //             </div>
+    //             `;
+    //
+    //             searchHistoryContainer.innerHTML += htmlContent;
+    //         });
+    //
+    //     } catch (error) {
+    //         // Обработка ошибок
+    //         searchHistoryContainer.innerHTML = `
+    //             <div class="alert alert-danger" role="alert">
+    //                 Произошла ошибка при получении данных: ${error.message}
+    //             </div>
+    //         `;
+    //         console.error('Ошибка при получении истории поиска:', error.message);
+    //     }
+    // }
+
+    // async function searchHistoryreq() {
+    //     // Получение контейнера для вывода истории поиска
+    //     let searchHistoryContainer = document.getElementById('searchHistory');
+    //
+    //     try {
+    //         // Отправка асинхронного запроса на сервер
+    //         let response = await fetch('/api/getAllSearchResult');
+    //
+    //         // Проверка, был ли запрос успешным
+    //         if (!response.ok) {
+    //             throw new Error(`HTTP error! status: ${response.status}`);
+    //         }
+    //
+    //         // Преобразование ответа в JSON
+    //         let data = await response.json();
+    //
+    //         // Логирование данных для отладки
+    //         console.log('История поиска:', data);
+    //
+    //         // Очистка контейнера перед добавлением новых данных
+    //         searchHistoryContainer.innerHTML = '';
+    //
+    //         // Проверка, если история поиска пуста
+    //         if (data.message === 'История поиска пуста') {
+    //             searchHistoryContainer.innerHTML = `
+    //             <div class="alert alert-info" role="alert">
+    //                 История поиска пуста.
+    //             </div>
+    //         `;
+    //             return;
+    //         }
+    //
+    //         // Формирование HTML контента для каждого элемента данных
+    //         data.forEach(item => {
+    //             const htmlContent =`<div class="card mb-3">
+    //                 <div class="card-header d-flex justify-content-between align-items-center">
+    //                     <strong>${item.author_name}</strong>
+    //                     <!-- Добавленная кнопка удаления -->
+    //                     <button class="btn btn-danger btn-sm" onclick="deletecurrentreq('${item.uniqkey}')">Удалить</button>
+    //                 </div>
+    //                 <div class="card-body">
+    //                     <p><strong>Уникальный ключ:</strong> ${item.uniqkey}</p>
+    //                     <p><strong>Дата запроса:</strong> ${item.date_stamp}</p>
+    //                     <p><strong>Сообщение:</strong> ${item.message_to_user}</p>
+    //                     <p><strong>Источник:</strong> <a href="${item.source_url}" target="_blank">${item.source_url}</a></p>
+    //                     <p><strong>Страница автора:</strong> <a href="${item.author_page_url}" target="_blank">${item.author_page_url}</a></p>
+    //                     <p><strong>Количество статей:</strong> ${item.articles_count}</p>
+    //                     <ul class="list-group">
+    //                         ${item.articles.map(article => `
+    //                             <li class="list-group-item">
+    //                                 <strong>Название статьи:</strong> <a href="${article.linkToArticle}" target="_blank">${article.titleOfArticle}</a><br>
+    //                                 ${article.authors !== undefined ? `<strong>Авторы:</strong> ${article.authors}` : ''}
+    //                             </li>
+    //                         `).join('')}
+    //                     </ul>
+    //                 </div>
+    //             </div>`;
+    //
+    //             searchHistoryContainer.innerHTML += htmlContent;
+    //         });
+    //
+    //     } catch (error) {
+    //         // Обработка ошибок
+    //         searchHistoryContainer.innerHTML = `
+    //         <div class="alert alert-danger" role="alert">
+    //             Произошла ошибка при получении данных: ${error.message}
+    //         </div>
+    //     `;
+    //         console.error('Ошибка при получении истории поиска:', error.message);
+    //     }
+    // }
+    async function searchHistoryreq() {
+        let searchHistoryContainer = document.getElementById('searchHistory');
+
+        try {
+            let response = await fetch('/api/getAllSearchResult');
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            let data = await response.json();
+            console.log('История поиска:', data);
+
+            searchHistoryContainer.innerHTML = '';
+
+            if (data.message === 'История поиска пуста') {
+                searchHistoryContainer.innerHTML = `
+                <div class="alert alert-info" role="alert">
+                    История поиска пуста.
+                </div>
+            `;
+                return;
+            }
+
+            data.forEach(item => {
+                const htmlContent = `
+            <div class="card mb-3">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <strong>${item.author_name}</strong>
+                    <button class="btn btn-danger btn-sm" onclick="deletecurrentreq('${item.uniqkey}')">Удалить</button>
+                </div>
+                <div class="card-body">
+                    <p><strong>Уникальный ключ:</strong> ${item.uniqkey}</p>
+                    <p><strong>Дата запроса:</strong> ${item.date_stamp}</p>
+                    <p><strong>Сообщение:</strong> ${item.message_to_user}</p>
+                    <p><strong>Источник:</strong> <a href="${item.source_url}" target="_blank">${item.source_url}</a></p>
+                    <p><strong>Страница автора:</strong> <a href="${item.author_page_url}" target="_blank">${item.author_page_url}</a></p>
+                    <p><strong>Количество статей:</strong> ${item.articles_count}</p>
+                    <ul class="list-group">
+                        ${item.articles.map(article => `
+                            <li class="list-group-item">
+                                <strong>Название статьи:</strong> <a href="${article.linkToArticle}" target="_blank">${article.titleOfArticle}</a><br>
+                                ${article.authors !== undefined ? `<strong>Авторы:</strong> ${article.authors}` : ''}
+                            </li>
+                        `).join('')}
+                    </ul>
+                </div>
+            </div>
+            `;
+
+                searchHistoryContainer.innerHTML += htmlContent;
+            });
+
+        } catch (error) {
+            searchHistoryContainer.innerHTML = `
+            <div class="alert alert-danger" role="alert">
+                Произошла ошибка при получении данных: ${error.message}
+            </div>
+        `;
+            console.error('Ошибка при получении истории поиска:', error.message);
+        }
+    }
+
+    async function deletecurrentreq(uniqkey) {
+        try {
+            // Отправка асинхронного DELETE-запроса на сервер
+            let response = await fetch(`/api/deletepublications/${uniqkey}`, {
+                method: 'DELETE'
+            });
+
+            // Проверка, был ли запрос успешным
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            // Преобразование ответа в JSON
+            let result = await response.json();
+            console.log(result);
+
+            // Уведомление об успешном удалении записи
+            alert('Запись успешно удалена');
+
+            // Обновление истории поиска после удаления записи
+            searchHistoryreq();
+        } catch (error) {
+            // Обработка ошибок
+            console.error('Ошибка при удалении записи:', error.message);
+            alert('Произошла ошибка при удалении записи');
+        }
+    }
+
+
+    async function clearHistoryUser() {
+        try {
+            // Получение контейнера с историей поиска
+            let searchHistoryContainer = document.getElementById('searchHistory');
+
+            // Проверка, пуст ли контейнер
+            if (searchHistoryContainer.innerHTML.trim() === '') {
+                alert('История пуста.');
+                return;
+            }
+
+            // Здесь вы можете получить userId, например, из текущей сессии или другого источника
+            const userId = 'your_user_id'; // Замените 'your_user_id' на реальный идентификатор пользователя
+
+            // Отправка асинхронного DELETE-запроса на сервер
+            let response = await fetch(`/api/deletehistoryuser/${userId}`, {
+                method: 'DELETE'
+            });
+
+            // Проверка, был ли запрос успешным
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            // Преобразование ответа в JSON (если ожидается)
+            let result = await response.json();
+            console.log(result);
+
+            // Уведомление об успешном удалении истории
+            alert('История успешно очищена');
+
+            // Очистка контейнера после успешного удаления
+            searchHistoryContainer.innerHTML = '';
+        } catch (error) {
+            // Обработка ошибок
+            console.error('Ошибка при удалении истории:', error.message);
+            alert('Произошла ошибка при удалении истории');
+        }
+    };
+</script>
+</body>
+</html>

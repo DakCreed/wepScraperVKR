@@ -1,0 +1,408 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <title>ScrapeSystem</title>
+    <style>
+        .btn-disable {
+            pointer-events: none;
+            opacity: 0.65;
+        }
+        .bg-lightblue {
+            background-color: #cce5ff; /* Бледно-синий */
+        }
+        .bg-lightpurple {
+            background-color: #e6ccff; /* Бледно-фиолетовый */
+        }
+        .inputParam {
+            background-color: #e9ecef; /* Светло-серый фон */
+            border-radius: 0.25rem; /* Закругленные углы */
+            padding: 0.2em 0.4em; /* Внутренние отступы */
+            font-weight: bold; /* Полужирный текст */
+            color: #495057; /* Цвет текста */
+        }
+        .minimalist-list {
+            list-style-type: disc;
+            padding-left: 20px;
+        }
+        .minimalist-list li {
+            padding: 5px 0;
+            position: relative;
+        }
+        .minimalist-list li::before {
+            content: "\2022";
+            color: #007bff;
+            font-weight: bold;
+            display: inline-block;
+            width: 1em;
+            margin-left: -1em;
+        }
+        .minimalist-list a {
+            text-decoration: none;
+            color: #007bff;
+        }
+        .minimalist-list a:hover {
+            text-decoration: underline;
+        }
+    </style>
+    <script>
+        let jsonData;
+        function escapeHtml(unsafe) {
+            return unsafe
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+        function removeContentRequestList() {
+            const requestList = document.getElementById('requestList');
+            requestList.innerHTML = '';
+
+            const requestListTitle = document.getElementById('requestListTitle');
+            requestListTitle.style.display = 'none';
+        }
+
+
+        // Асинхронная функция с задержкой 2 минуты
+        async function getJsonWithDelay() {
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    resolve(jsonData);
+                }, 2000); // 2 минуты в миллисекундах
+            });
+        }
+
+        // Пример вызова функции
+        async function fetchJsonData() {
+            console.log('Запрос данных...');
+            const data = await getJsonWithDelay();
+            console.log('Данные получены:', data);
+            console.log(data);
+        }
+
+        // Функция генерации случайной строки из 4 символов
+        function generateRandomString(length = 4) {
+            const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            let result = '';
+            const charactersLength = characters.length;
+            for (let i = 0; i < length; i++) {
+                result += characters.charAt(Math.floor(Math.random() * charactersLength));
+            }
+            return result;
+        }
+
+        // Функция создания запроса
+        function createRequest() {
+            const requestListTitle = document.querySelector('#requestListTitle');
+            const requestList = document.querySelector('#requestList');
+
+            requestListTitle.style.display = 'block';
+
+            const uniqueClass = generateRandomString();
+            const isEven = requestList.children.length % 2 === 0;
+            const bgColorClass = isEven ? 'bg-lightblue' : 'bg-lightpurple';
+            const newChildHTML =
+                `<li class="list-group-item elemSearch ${uniqueClass} ${bgColorClass} mb-3 p-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <input class="form-control paramForScrape" type="text" placeholder="ORCID, ID Author, SPIN-код">
+                        <button class="btn btn-primary ms-2 goSearch" onclick="goSearch(event)">Искать</button>
+                    </div>
+                    <div class="responseServe mt-2"></div>
+                    <div class="d-flex justify-content-between align-items-center mt-2">
+                        <div>
+                            <button class="btn btn-primary me-2 controlSaveDB" onclick="saveDataToDatabase(event)" style="padding: 10px 15px; font-size: 14px;">
+                                Сохранить данные <br> в базу данных
+                            </button>
+                            <button class="btn btn-danger btn-disable me-2 controlSaveDB btn-disable" onclick="deleteDataFromDatabase(event)" style="padding: 10px 15px; font-size: 14px;">
+                                Удалить данные <br> из базы данных
+                            </button>
+                        </div>
+                        <button class="btn btn-danger ms-auto" onclick="removeResultFromList(event)" style="padding: 10px 15px; font-size: 14px;">
+                            Удалить результат <br> поиска из текущего списка
+                        </button>
+                    </div>
+                    <div class='scrapeContent my-4'><p></p></div>
+                   </li>`;
+            requestList.insertAdjacentHTML('afterbegin', newChildHTML); // Вставка в начало списка
+
+            // Вызов асинхронной функции fetchJsonData при создании запроса
+            fetchJsonData();
+        }
+        function toggleDeleteButtons() {
+            const buttons = document.querySelectorAll('.controlSaveDB');
+
+            buttons.forEach(button => {
+                if (button.classList.contains('btn-disable')) {
+                    button.classList.remove('btn-disable');
+                } else if (!button.classList.contains('btn-disable')){
+                    button.classList.add('btn-disable');
+                }
+            });
+        }
+
+
+        async function deleteDataFromDatabase(event) {
+            const button = event.target;
+            const elemSearch = button.closest('.elemSearch');
+            const uniqkey = jsonData.uniqkey; // Получаем uniqkey из глобальной переменной jsonData
+
+            try {
+                const response = await fetch(`/api/deletepublications/${uniqkey}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+
+                const responseData = await response.json();
+                console.log('Запись успешно удалена', responseData);
+                alert('Запись успешно удалена');
+
+                // Удаляем элемент из DOM
+                elemSearch.remove();
+                toggleDeleteButtons();
+            } catch (error) {
+                console.error('Ошибка при удалении данных:', error);
+                alert('Произошла ошибка при удалении данных.');
+            }
+        }
+
+        function removeResultFromList(event) {
+            // Получаем кнопку, на которую было нажато
+            const button = event.target;
+            // Находим родительский элемент с классом .elemSearch
+            const elemSearch = button.closest('.elemSearch');
+            // Удаляем найденный элемент
+            if (elemSearch) {
+                elemSearch.remove();
+            }
+        }
+
+        async function goSearch(event) {
+            const button = event.target;
+            const elemSearch = button.closest('.elemSearch');
+            const scrapeContent = elemSearch.querySelector('.scrapeContent');
+            let userInput = elemSearch.querySelector('.paramForScrape').value;
+            userInput = elemSearch.querySelector('.paramForScrape').value;
+
+            // Показать спиннер
+            scrapeContent.innerHTML = `
+        <div class="d-flex justify-content-center my-4">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    `;
+
+            try {
+                // Обращение к серверу
+                const response = await fetch('/api/goScrape', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ userInput: userInput })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+
+                // const jsonData = await response.json();
+                jsonData = await response.json();
+
+                const htmlContent = `
+            <div class="card">
+                <div class="card-header">
+                    <strong>${jsonData.nameAuthor}</strong>
+                </div>
+                <div class="card-body">
+                    <p><strong>Уникальный ключ:</strong> ${jsonData.uniqkey}</p>
+                    <p><strong>Дата запроса:</strong> ${jsonData.dateStamp}</p>
+                    <p><strong>Источник:</strong> ${jsonData.from}</p>
+                    <p><strong>Сообщение:</strong> ${jsonData.messageToUser}</p>
+                    <p><strong>Страница автора:</strong> <a href="${jsonData.pageAuthors}" target="_blank">${jsonData.pageAuthors}</a></p>
+                    <p><strong>${jsonData.foundArticles}</strong></p>
+                    <ul class="list-group">
+                        ${jsonData.articlesList.map(article => `
+                            <li class="list-group-item">
+                                <strong>Название статьи:</strong> <a href="${article.linkToArticle}" target="_blank">${article.titleOfArticle}</a><br>
+                                ${article.authors !== undefined ? `<strong>Авторы:</strong> ${article.authors}` : ''}
+                            </li>
+                        `).join('')}
+                    </ul>
+                </div>
+            </div>
+        `;
+
+                scrapeContent.innerHTML = htmlContent;
+            } catch (error) {
+                scrapeContent.innerHTML = `
+            <div class="alert alert-danger" role="alert">
+                Произошла ошибка при получении данных: ${error.message}
+            </div>
+        `;
+            }
+        }
+
+
+
+        async function saveDataToDatabase(event) {
+            console.log('Начало сохранения данных...'); // Отладочный вывод
+
+            try {
+                const response = await fetch('/api/savetoDB', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ resultRequest: jsonData })
+                });
+
+                console.log('Ответ от сервера получен'); // Отладочный вывод
+
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+
+                const responseData = await response.json();
+                console.log('Данные сохранены в БД!', responseData);
+                alert('Запись добавлена в базу данных!');
+            } catch (error) {
+                console.error('Ошибка при сохранении данных:', error);
+                alert('Произошла ошибка при сохранении данных.');
+            }
+
+            // Логика для сохранения данных в базу данных
+            toggleDeleteButtons();
+        }
+
+
+    </script>
+</head>
+<body>
+<%- include('navbar') %>
+<div class="container mt-5">
+
+    <h1 class="mb-4">Вы аутентифицированный как <span class="text-primary"><%= user.username %></span>.</h1>
+    <div class="card">
+        <div class="card-body">
+            <p>Введите параметры для поиска материалов.<br>
+                Система осуществляет поиск на двух ресурсах:
+            </p>
+            <ul class="minimalist-list mb-4">
+                <li><a href="https://orcid.org/" target="_blank">https://orcid.org/</a></li>
+                <li><a href="https://www.elibrary.ru" target="_blank">https://www.elibrary.ru</a></li>
+            </ul>
+            <p>
+                В качестве входных параметров можно использовать только:
+                <ul>
+                    <li>ORCID ID => Строка вида <span class="inputParam">0000-0002-9778-124X</span> (поиск по ресурсу <a href="https://orcid.org/" target="_blank">https://orcid.org/</a>)</li>
+                    <li>SPIN-код => Строка вида <span class="inputParam">9952-5540</span> (поиск по ресурсу <a href="https://www.elibrary.ru" target="_blank">https://www.elibrary.ru</a>)</li>
+                    <li>Author id => Строка вида <span class="inputParam">873546</span> (поиск по ресурсу <a href="https://www.elibrary.ru" target="_blank">https://www.elibrary.ru</a>)</li>
+                </ul>
+            </p>
+            <button id="createRequestButton" type="button" class="btn btn-primary mb-4" onclick="createRequest()">Создать запрос</button>
+            <button id="createRequestButton" type="button" class="btn btn-danger mb-4" onclick="removeContentRequestList()">Удалить все запросы со страницы</button>
+
+            <h2 id="requestListTitle" class="mb-3" style="display: none;">История запросов: </h2>
+            <ul id="requestList" class="list-group">
+
+            </ul>
+            <div id="result" class="mt-4"></div>
+        </div>
+    </div>
+</div>
+<!--<script>-->
+<!--    const jsonData = {-->
+<!--        "uniqkey": "975a881494e24152",-->
+<!--        "dateStamp": "15.06.2024, 17:50:23",-->
+<!--        "from": "elibrary.ru",-->
+<!--        "messageToUser": "Вы ввели id автора, поиск будет произведен по ресурсу elibrary.ru",-->
+<!--        "pageAuthors": "https://elibrary.ru/author_items.asp?authorid=1230650",-->
+<!--        "nameAuthor": "МОСЕВА АЛЕСЯ СЕРГЕЕВНА",-->
+<!--        "foundArticles": "Найдено публикаций: 2",-->
+<!--        "articlesList": [-->
+<!--            {-->
+<!--                "titleOfArticle": "ИССЛЕДОВАНИЕ МЕТОДОВ РАСПОЗНАВАНИЯ АВТОМОБИЛЬНЫХ НОМЕРОВ",-->
+<!--                "linkToArticle": "https://elibrary.ru/item.asp?id=54153273",-->
+<!--                "authors": "Мосева А.С."-->
+<!--            },-->
+<!--            {-->
+<!--                "titleOfArticle": "ИССЛЕДОВАНИЕ ТЕХНОЛОГИИ ОПТИЧЕСКОГО РАСПОЗНАВАНИЯ СИМВОЛОВ",-->
+<!--                "linkToArticle": "https://elibrary.ru/item.asp?id=54885601",-->
+<!--                "authors": "Мосева А.С., Городничев М.Г."-->
+<!--            }-->
+<!--        ]-->
+<!--    };-->
+<!--    // Асинхронная функция с задержкой 2 минуты-->
+<!--    async function getJsonWithDelay() {-->
+<!--        return new Promise((resolve) => {-->
+<!--            setTimeout(() => {-->
+<!--                resolve(jsonData);-->
+<!--            }, 2 * 60 * 1000); // 2 минуты в миллисекундах-->
+<!--        });-->
+<!--    }-->
+
+<!--    // Пример вызова функции-->
+<!--    async function fetchJsonData() {-->
+<!--        console.log('Запрос данных...');-->
+<!--        const data = await getJsonWithDelay();-->
+<!--        console.log('Данные получены:', data);-->
+<!--    }-->
+
+
+
+
+
+<!--    function escapeHtml(unsafe) {-->
+<!--        return unsafe-->
+<!--            .replace(/&/g, "&amp;")-->
+<!--            .replace(/</g, "&lt;")-->
+<!--            .replace(/>/g, "&gt;")-->
+<!--            .replace(/"/g, "&quot;")-->
+<!--            .replace(/'/g, "&#039;");-->
+<!--    }-->
+
+<!--    // Функция генерации случайной строки из 4 символов-->
+<!--    function generateRandomString(length = 4) {-->
+<!--        const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';-->
+<!--        let result = '';-->
+<!--        const charactersLength = characters.length;-->
+<!--        for (let i = 0; i < length; i++) {-->
+<!--            result += characters.charAt(Math.floor(Math.random() * charactersLength));-->
+<!--        }-->
+<!--        return result;-->
+<!--    }-->
+
+<!--    function createRequest() {-->
+<!--        const requestListTitle = document.querySelector('#requestListTitle');-->
+<!--        const requestList = document.querySelector('#requestList');-->
+
+<!--        requestListTitle.style.display = 'block';-->
+
+<!--        const uniqueClass = generateRandomString();-->
+<!--        const newChildHTML = `-->
+<!--            <li class="list-group-item elemSearch ${uniqueClass}">-->
+<!--                <div class="d-flex justify-content-between align-items-center">-->
+<!--                    <input class="form-control paramForScrape" type="text" placeholder="ORCID, ID Author, SPIN-код">-->
+<!--                    <button class="btn btn-primary ms-2 goSearch" onclick="goSearch(event)">Искать</button>-->
+<!--                </div>-->
+<!--                <div class="responseServe mt-2"></div>-->
+<!--            </li>`;-->
+<!--        requestList.insertAdjacentHTML('afterbegin', newChildHTML);-->
+<!--    }-->
+<!--</script>-->
+
+</body>
+</html>
