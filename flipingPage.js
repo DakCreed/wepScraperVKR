@@ -29,12 +29,82 @@ function returnPageAuthorElib(url) {
 
 
 
+// let scrapeAuthorArticles = async function z(inputURL, ftrres) {
+//
+//     let finalResultArticles = {
+//
+//         uniqkey: generateUniqueKey(),
+//
+//         dateStamp: new Date().toLocaleString('ru-RU', {
+//             year: 'numeric',
+//             month: '2-digit',
+//             day: '2-digit',
+//             hour: '2-digit',
+//             minute: '2-digit',
+//             second: '2-digit'
+//         }),
+//         from: "elibrary.ru",
+//         messageToUser: "",
+//         pageAuthors: returnPageAuthorElib(inputURL),
+//         nameAuthor: "Гусев Аркадий Эдуардович",
+//         get foundArticles() {
+//             return `Найдено публикаций: ${this.articlesList.length}`;
+//         },
+//         articlesList: []
+//     };
+//
+//
+//     const regexSPIN=/^\d{4}-\d{4}$/;
+//     const regexID=/^\d{1,9}$/;
+//
+//     if(regexSPIN.test(ftrres)) {
+//         finalResultArticles.messageToUser='Вы ввели SPIN код автора, поиск будет произведен по ресурсу elibrary.ru';
+//     }
+//     if(regexID.test(ftrres)) {
+//         finalResultArticles.messageToUser='Вы ввели id автора, поиск будет произведен по ресурсу elibrary.ru';
+//     }
+//
+//     const browser = await puppeteer.launch({ headless: true, userDataDir: './tmp' });
+//     const page = await browser.newPage();
+//
+//     await page.goto(inputURL, { waitUntil: 'networkidle0' });
+//
+//     const elementName = await page.$('#thepage > table > tbody > tr > td > table:nth-child(1) > tbody > tr > td:nth-child(2) > form > table > tbody > tr:nth-child(3) > td:nth-child(1) > table > tbody > tr > td > div:nth-child(1) > font > b');
+//     finalResultArticles.nameAuthor = await page.evaluate((element) => element.textContent, elementName);
+//
+//     let countPage = 1;
+//
+//     while (true) {
+//         const element = await page.$('#panel > div > table > tbody > tr:nth-child(2) > td:nth-child(2) > a');
+//         const textContent = await page.evaluate((element) => element.textContent, element);
+//         // console.log(textContent);
+//         if (textContent === "Предыдущая страница" || textContent === "Выделить все публикации на этой странице") {
+//             const htmlContent = await page.content();
+//             finalResultArticles.articlesList.push(parsePage(htmlContent));
+//             finalResultArticles.articlesList = flattenObjectArrays(finalResultArticles.articlesList);
+//             const jsonString = JSON.stringify(finalResultArticles);
+//             await browser.close();
+//             return jsonString;
+//         }
+//         const htmlContent = await page.content();
+//         finalResultArticles.articlesList.push(parsePage(htmlContent));
+//         try {
+//             await Promise.all([
+//                 page.click('#panel > div > table > tbody > tr:nth-child(2) > td:nth-child(2) > a'),
+//                 page.waitForNavigation({ waitUntil: 'networkidle0' })
+//             ]);
+//         } catch (error) {
+//             console.error('Произошла ошибка при нажатии на элемент или ожидании навигации:', error);
+//             break;
+//         }
+//         countPage++;
+//     }
+//     await browser.close();
+// };
+
 let scrapeAuthorArticles = async function z(inputURL, ftrres) {
-
-    let finalResultArticles = {
-
+    const finalResultArticles = {
         uniqkey: generateUniqueKey(),
-
         dateStamp: new Date().toLocaleString('ru-RU', {
             year: 'numeric',
             month: '2-digit',
@@ -53,54 +123,65 @@ let scrapeAuthorArticles = async function z(inputURL, ftrres) {
         articlesList: []
     };
 
+    const regexSPIN = /^\d{4}-\d{4}$/;
+    const regexID = /^\d{1,9}$/;
 
-    const regexSPIN=/^\d{4}-\d{4}$/;
-    const regexID=/^\d{1,9}$/;
-
-    if(regexSPIN.test(ftrres)) {
-        finalResultArticles.messageToUser='Вы ввели SPIN код автора, поиск будет произведен по ресурсу elibrary.ru';
+    if (regexSPIN.test(ftrres)) {
+        finalResultArticles.messageToUser = 'Вы ввели SPIN код автора, поиск будет произведен по ресурсу elibrary.ru';
     }
-    if(regexID.test(ftrres)) {
-        finalResultArticles.messageToUser='Вы ввели id автора, поиск будет произведен по ресурсу elibrary.ru';
+    if (regexID.test(ftrres)) {
+        finalResultArticles.messageToUser = 'Вы ввели id автора, поиск будет произведен по ресурсу elibrary.ru';
     }
 
-    const browser = await puppeteer.launch({ headless: true, userDataDir: './tmp' });
-    const page = await browser.newPage();
+    let browser;
 
-    await page.goto(inputURL, { waitUntil: 'networkidle0' });
+    try {
+        browser = await puppeteer.launch({ headless: true, userDataDir: './tmp' });
+        const page = await browser.newPage();
+        await page.goto(inputURL, { waitUntil: 'networkidle0' });
 
-    const elementName = await page.$('#thepage > table > tbody > tr > td > table:nth-child(1) > tbody > tr > td:nth-child(2) > form > table > tbody > tr:nth-child(3) > td:nth-child(1) > table > tbody > tr > td > div:nth-child(1) > font > b');
-    finalResultArticles.nameAuthor = await page.evaluate((element) => element.textContent, elementName);
+        const elementName = await page.$('#thepage > table > tbody > tr > td > table:nth-child(1) > tbody > tr > td:nth-child(2) > form > table > tbody > tr:nth-child(3) > td:nth-child(1) > table > tbody > tr > td > div:nth-child(1) > font > b');
+        finalResultArticles.nameAuthor = await page.evaluate((element) => element.textContent, elementName);
 
-    let countPage = 1;
+        let countPage = 1;
 
-    while (true) {
-        const element = await page.$('#panel > div > table > tbody > tr:nth-child(2) > td:nth-child(2) > a');
-        const textContent = await page.evaluate((element) => element.textContent, element);
-        // console.log(textContent);
-        if (textContent === "Предыдущая страница" || textContent === "Выделить все публикации на этой странице") {
+        while (true) {
+            const element = await page.$('#panel > div > table > tbody > tr:nth-child(2) > td:nth-child(2) > a');
+            const textContent = await page.evaluate((element) => element.textContent, element);
+            if (textContent === "Предыдущая страница" || textContent === "Выделить все публикации на этой странице") {
+                const htmlContent = await page.content();
+                finalResultArticles.articlesList.push(parsePage(htmlContent));
+                finalResultArticles.articlesList = flattenObjectArrays(finalResultArticles.articlesList);
+                const jsonString = JSON.stringify(finalResultArticles);
+                await browser.close();
+                return jsonString;
+            }
             const htmlContent = await page.content();
             finalResultArticles.articlesList.push(parsePage(htmlContent));
-            finalResultArticles.articlesList = flattenObjectArrays(finalResultArticles.articlesList);
-            const jsonString = JSON.stringify(finalResultArticles);
-            await browser.close();
-            return jsonString;
+            try {
+                await Promise.all([
+                    page.click('#panel > div > table > tbody > tr:nth-child(2) > td:nth-child(2) > a'),
+                    page.waitForNavigation({ waitUntil: 'networkidle0' })
+                ]);
+            } catch (error) {
+                console.error('Ошибка при нажатии на элемент или ожидании навигации:', error);
+                break;
+            }
+            countPage++;
         }
-        const htmlContent = await page.content();
-        finalResultArticles.articlesList.push(parsePage(htmlContent));
-        try {
-            await Promise.all([
-                page.click('#panel > div > table > tbody > tr:nth-child(2) > td:nth-child(2) > a'),
-                page.waitForNavigation({ waitUntil: 'networkidle0' })
-            ]);
-        } catch (error) {
-            console.error('Произошла ошибка при нажатии на элемент или ожидании навигации:', error);
-            break;
+    } catch (error) {
+        console.error('Произошла ошибка:', error);
+    } finally {
+        if (browser) {
+            try {
+                await browser.close();
+            } catch (closeError) {
+                console.error('Произошла ошибка при закрытии браузера:', closeError);
+            }
         }
-        countPage++;
     }
-    await browser.close();
 };
+
 
 let scrapeResourses = async function u(inputURL){
     let a = await getLinkToPerson(inputURL);

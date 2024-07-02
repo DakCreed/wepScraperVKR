@@ -8,20 +8,21 @@ import path from "path";
 import bodyParser from 'body-parser';
 import morgan from 'morgan';
 import {analyzeString} from "./identifySearchParams.js";
+import pool from './db.js';
 
 
-const { Pool } = pkg;
+// const { Pool } = pkg;
 
 const app = express();
 
 // Подключение к базе данных PostgreSQL
-const pool = new Pool({
-    user: 'postgres', // Замените на ваше имя пользователя PostgreSQL
-    host: 'localhost',
-    database: 'VKR', // Замените на имя вашей базы данных
-    password: 'root', // Замените на ваш пароль PostgreSQL
-    port: 5432,
-});
+// const pool = new Pool({
+//     user: 'postgres', // Замените на ваше имя пользователя PostgreSQL
+//     host: 'localhost',
+//     database: 'VKR', // Замените на имя вашей базы данных
+//     password: 'root', // Замените на ваш пароль PostgreSQL
+//     port: 5432,
+// });
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -133,31 +134,6 @@ async function getUsernameByUserId(userId) {
         }
     } catch (error) {
         console.error('Error fetching username:', error.message);
-        throw error;
-    }
-}
-
-async function getUserIdByUsername(username) {
-    // Определение SQL-запроса для получения идентификатора пользователя по его имени (username)
-    const query = 'SELECT id FROM users WHERE username = $1';
-    // Массив значений, содержащий username, который будет использован в параметризованном запросе
-    const values = [username];
-
-    try {
-        // Выполнение запроса к базе данных с использованием пула подключений
-        const result = await pool.query(query, values);
-        // Проверка, вернул ли запрос хотя бы одну строку
-        if (result.rows.length > 0) {
-            // Возвращение значения поля id из первой строки результата запроса
-            return result.rows[0].id;
-        } else {
-            // Если запрос не вернул ни одной строки, бросаем ошибку "User not found"
-            throw new Error('User not found');
-        }
-    } catch (error) {
-        // Логируем ошибку, если произошла ошибка при выполнении запроса
-        console.error('Error fetching user ID:', error.message);
-        // Повторно выбрасываем ошибку для обработки выше
         throw error;
     }
 }

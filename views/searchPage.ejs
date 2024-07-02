@@ -51,7 +51,20 @@
         }
     </style>
     <script>
+
+        function generateRandomString(length = 5) {
+            const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+            let result = '';
+            const charactersLength = characters.length;
+            for (let i = 0; i < length; i++) {
+                result += characters.charAt(Math.floor(Math.random() * charactersLength));
+            }
+            return result;
+        }
+
+
         let jsonData;
+        let jsonContainer={};
         function escapeHtml(unsafe) {
             return unsafe
                 .replace(/&/g, "&amp;")
@@ -69,22 +82,22 @@
         }
 
 
-        // Асинхронная функция с задержкой 2 минуты
-        async function getJsonWithDelay() {
-            return new Promise((resolve) => {
-                setTimeout(() => {
-                    resolve(jsonData);
-                }, 2000); // 2 минуты в миллисекундах
-            });
-        }
+        // // Асинхронная функция с задержкой 2 минуты
+        // async function getJsonWithDelay() {
+        //     return new Promise((resolve) => {
+        //         setTimeout(() => {
+        //             resolve(jsonData);
+        //         }, 2000); // 2 минуты в миллисекундах
+        //     });
+        // }
 
-        // Пример вызова функции
-        async function fetchJsonData() {
-            console.log('Запрос данных...');
-            const data = await getJsonWithDelay();
-            console.log('Данные получены:', data);
-            console.log(data);
-        }
+        // // Пример вызова функции
+        // async function fetchJsonData() {
+        //     console.log('Запрос данных...');
+        //     const data = await getJsonWithDelay();
+        //     console.log('Данные получены:', data);
+        //     console.log(data);
+        // }
 
         // Функция генерации случайной строки из 4 символов
         function generateRandomString(length = 4) {
@@ -119,7 +132,7 @@
                             <button class="btn btn-primary me-2 controlSaveDB" onclick="saveDataToDatabase(event)" style="padding: 10px 15px; font-size: 14px;">
                                 Сохранить данные <br> в базу данных
                             </button>
-                            <button class="btn btn-danger btn-disable me-2 controlSaveDB btn-disable" onclick="deleteDataFromDatabase(event)" style="padding: 10px 15px; font-size: 14px;">
+                            <button class="btn btn-danger me-2 controlSaveDB" onclick="deleteDataFromDatabase(event)" style="padding: 10px 15px; font-size: 14px;">
                                 Удалить данные <br> из базы данных
                             </button>
                         </div>
@@ -132,22 +145,23 @@
             requestList.insertAdjacentHTML('afterbegin', newChildHTML); // Вставка в начало списка
 
             // Вызов асинхронной функции fetchJsonData при создании запроса
-            fetchJsonData();
+            // fetchJsonData();
         }
         function toggleDeleteButtons() {
-            const buttons = document.querySelectorAll('.controlSaveDB');
-
-            buttons.forEach(button => {
-                if (button.classList.contains('btn-disable')) {
-                    button.classList.remove('btn-disable');
-                } else if (!button.classList.contains('btn-disable')){
-                    button.classList.add('btn-disable');
-                }
-            });
+            // const buttons = document.querySelectorAll('.controlSaveDB');
+            //
+            // buttons.forEach(button => {
+            //     if (button.classList.contains('btn-disable')) {
+            //         button.classList.remove('btn-disable');
+            //     } else if (!button.classList.contains('btn-disable')){
+            //         button.classList.add('btn-disable');
+            //     }
+            // });
         }
 
 
         async function deleteDataFromDatabase(event) {
+            let rs=document.querySelector('#resultStamp');
             const button = event.target;
             const elemSearch = button.closest('.elemSearch');
             const uniqkey = jsonData.uniqkey; // Получаем uniqkey из глобальной переменной jsonData
@@ -189,6 +203,7 @@
         }
 
         async function goSearch(event) {
+            let randomString=generateRandomString();
             const button = event.target;
             const elemSearch = button.closest('.elemSearch');
             const scrapeContent = elemSearch.querySelector('.scrapeContent');
@@ -219,22 +234,24 @@
                 }
 
                 // const jsonData = await response.json();
+                console.log(generateRandomString());
                 jsonData = await response.json();
+                jsonContainer[randomString]=jsonData;
 
                 const htmlContent = `
             <div class="card">
                 <div class="card-header">
-                    <strong>${jsonData.nameAuthor}</strong>
+                    <strong>${jsonContainer[randomString].nameAuthor}</strong><div style="display: none;" id='resultStamp'>${randomString}</div>
                 </div>
                 <div class="card-body">
-                    <p><strong>Уникальный ключ:</strong> ${jsonData.uniqkey}</p>
-                    <p><strong>Дата запроса:</strong> ${jsonData.dateStamp}</p>
-                    <p><strong>Источник:</strong> ${jsonData.from}</p>
-                    <p><strong>Сообщение:</strong> ${jsonData.messageToUser}</p>
-                    <p><strong>Страница автора:</strong> <a href="${jsonData.pageAuthors}" target="_blank">${jsonData.pageAuthors}</a></p>
-                    <p><strong>${jsonData.foundArticles}</strong></p>
+                    <p><strong>Уникальный ключ:</strong> ${jsonContainer[randomString].uniqkey}</p>
+                    <p><strong>Дата запроса:</strong> ${jsonContainer[randomString].dateStamp}</p>
+                    <p><strong>Источник:</strong> ${jsonContainer[randomString].from}</p>
+                    <p><strong>Сообщение:</strong> ${jsonContainer[randomString].messageToUser}</p>
+                    <p><strong>Страница автора:</strong> <a href="${jsonContainer[randomString].pageAuthors}" target="_blank">${jsonContainer[randomString].pageAuthors}</a></p>
+                    <p><strong>${jsonContainer[randomString].foundArticles}</strong></p>
                     <ul class="list-group">
-                        ${jsonData.articlesList.map(article => `
+                        ${jsonContainer[randomString].articlesList.map(article => `
                             <li class="list-group-item">
                                 <strong>Название статьи:</strong> <a href="${article.linkToArticle}" target="_blank">${article.titleOfArticle}</a><br>
                                 ${article.authors !== undefined ? `<strong>Авторы:</strong> ${article.authors}` : ''}
@@ -259,6 +276,9 @@
 
         async function saveDataToDatabase(event) {
             console.log('Начало сохранения данных...'); // Отладочный вывод
+            let rs=document.querySelector('#resultStamp');
+            console.log(rs.textContent);
+            console.log(jsonContainer[rs.textContent]);
 
             try {
                 const response = await fetch('/api/savetoDB', {
@@ -266,7 +286,7 @@
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ resultRequest: jsonData })
+                    body: JSON.stringify({ resultRequest: jsonContainer[rs.textContent] })
                 });
 
                 console.log('Ответ от сервера получен'); // Отладочный вывод
@@ -307,6 +327,7 @@
             <p>
                 В качестве входных параметров можно использовать только:
                 <ul>
+                    <li>ORCID ID => Строка вида <span class="inputParam">0000-0002-7102-4208</span> (поиск по ресурсу <a href="https://orcid.org/" target="_blank">https://orcid.org/</a>)</li>
                     <li>ORCID ID => Строка вида <span class="inputParam">0000-0002-9778-124X</span> (поиск по ресурсу <a href="https://orcid.org/" target="_blank">https://orcid.org/</a>)</li>
                     <li>SPIN-код => Строка вида <span class="inputParam">9952-5540</span> (поиск по ресурсу <a href="https://www.elibrary.ru" target="_blank">https://www.elibrary.ru</a>)</li>
                     <li>Author id => Строка вида <span class="inputParam">873546</span> (поиск по ресурсу <a href="https://www.elibrary.ru" target="_blank">https://www.elibrary.ru</a>)</li>
@@ -323,86 +344,6 @@
         </div>
     </div>
 </div>
-<!--<script>-->
-<!--    const jsonData = {-->
-<!--        "uniqkey": "975a881494e24152",-->
-<!--        "dateStamp": "15.06.2024, 17:50:23",-->
-<!--        "from": "elibrary.ru",-->
-<!--        "messageToUser": "Вы ввели id автора, поиск будет произведен по ресурсу elibrary.ru",-->
-<!--        "pageAuthors": "https://elibrary.ru/author_items.asp?authorid=1230650",-->
-<!--        "nameAuthor": "МОСЕВА АЛЕСЯ СЕРГЕЕВНА",-->
-<!--        "foundArticles": "Найдено публикаций: 2",-->
-<!--        "articlesList": [-->
-<!--            {-->
-<!--                "titleOfArticle": "ИССЛЕДОВАНИЕ МЕТОДОВ РАСПОЗНАВАНИЯ АВТОМОБИЛЬНЫХ НОМЕРОВ",-->
-<!--                "linkToArticle": "https://elibrary.ru/item.asp?id=54153273",-->
-<!--                "authors": "Мосева А.С."-->
-<!--            },-->
-<!--            {-->
-<!--                "titleOfArticle": "ИССЛЕДОВАНИЕ ТЕХНОЛОГИИ ОПТИЧЕСКОГО РАСПОЗНАВАНИЯ СИМВОЛОВ",-->
-<!--                "linkToArticle": "https://elibrary.ru/item.asp?id=54885601",-->
-<!--                "authors": "Мосева А.С., Городничев М.Г."-->
-<!--            }-->
-<!--        ]-->
-<!--    };-->
-<!--    // Асинхронная функция с задержкой 2 минуты-->
-<!--    async function getJsonWithDelay() {-->
-<!--        return new Promise((resolve) => {-->
-<!--            setTimeout(() => {-->
-<!--                resolve(jsonData);-->
-<!--            }, 2 * 60 * 1000); // 2 минуты в миллисекундах-->
-<!--        });-->
-<!--    }-->
-
-<!--    // Пример вызова функции-->
-<!--    async function fetchJsonData() {-->
-<!--        console.log('Запрос данных...');-->
-<!--        const data = await getJsonWithDelay();-->
-<!--        console.log('Данные получены:', data);-->
-<!--    }-->
-
-
-
-
-
-<!--    function escapeHtml(unsafe) {-->
-<!--        return unsafe-->
-<!--            .replace(/&/g, "&amp;")-->
-<!--            .replace(/</g, "&lt;")-->
-<!--            .replace(/>/g, "&gt;")-->
-<!--            .replace(/"/g, "&quot;")-->
-<!--            .replace(/'/g, "&#039;");-->
-<!--    }-->
-
-<!--    // Функция генерации случайной строки из 4 символов-->
-<!--    function generateRandomString(length = 4) {-->
-<!--        const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';-->
-<!--        let result = '';-->
-<!--        const charactersLength = characters.length;-->
-<!--        for (let i = 0; i < length; i++) {-->
-<!--            result += characters.charAt(Math.floor(Math.random() * charactersLength));-->
-<!--        }-->
-<!--        return result;-->
-<!--    }-->
-
-<!--    function createRequest() {-->
-<!--        const requestListTitle = document.querySelector('#requestListTitle');-->
-<!--        const requestList = document.querySelector('#requestList');-->
-
-<!--        requestListTitle.style.display = 'block';-->
-
-<!--        const uniqueClass = generateRandomString();-->
-<!--        const newChildHTML = `-->
-<!--            <li class="list-group-item elemSearch ${uniqueClass}">-->
-<!--                <div class="d-flex justify-content-between align-items-center">-->
-<!--                    <input class="form-control paramForScrape" type="text" placeholder="ORCID, ID Author, SPIN-код">-->
-<!--                    <button class="btn btn-primary ms-2 goSearch" onclick="goSearch(event)">Искать</button>-->
-<!--                </div>-->
-<!--                <div class="responseServe mt-2"></div>-->
-<!--            </li>`;-->
-<!--        requestList.insertAdjacentHTML('afterbegin', newChildHTML);-->
-<!--    }-->
-<!--</script>-->
 
 </body>
 </html>
