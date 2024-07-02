@@ -19,7 +19,7 @@
 
 1. **Клонируйте репозиторий**:
     ```bash
-    git clone https://github.com/yourusername/your-repo.git
+    git clone https://github.com/DakCreed/wepScraperVKR
     cd your-repo
     ```
 
@@ -28,26 +28,21 @@
     npm install
     ```
 
-3. **Настройте базу данных PostgreSQL**:
+3. **Настройте базу данных PostgreSQL в файле db.js, поменяйте на параметры своей базы**:
     ```sql
-    CREATE DATABASE your_db_name;
-    \c your_db_name
-    CREATE TABLE scraped_data (
-        id SERIAL PRIMARY KEY,
-        title VARCHAR(255),
-        author VARCHAR(255),
-        link TEXT
-    );
+    const pool = new Pool({
+    user: 'postgres', // Замените на ваше имя пользователя PostgreSQL
+    host: 'localhost',
+    database: 'VKR', // Замените на имя вашей базы данных
+    password: 'root', // Замените на ваш пароль PostgreSQL
+    port: 5432,
+});
     ```
 
-4. **Создайте файл `.env`** в корневом каталоге с следующим содержимым:
-    ```plaintext
-    PORT=3000
-    DATABASE_URL=postgres://yourusername:yourpassword@localhost:5432/your_db_name
-    ```
 
 ## Использование
 
-Чтобы запустить сервер, выполните:
+Чтобы запустить сервер, откройте bash-консоль в директории проекта и выполните:
 ```bash
-npm start
+node app.js
+```
